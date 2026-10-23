@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'dart:ui' as ui;
 
 import 'package:flutter/foundation.dart';
@@ -88,21 +89,34 @@ class _EditorScreenState extends State<EditorScreen> {
   }
 
   Future<void> _save() => _run(() async {
+    File? file;
     try {
       if (!await Gal.requestAccess()) {
         _toast('Allow access to Photos to save your wallpaper.');
         return;
       }
       final bytes = await _capture();
-      await Gal.putImageBytes(
-        bytes,
-        name: 'gurbani-wallpaper-${DateTime.now().millisecondsSinceEpoch}',
-      );
+      // Save from a real .png file: Gal.putImageBytes has to guess the image
+      // format, which fails in release builds.
+      final stamp = DateTime.now().millisecondsSinceEpoch;
+      file = File('${Directory.systemTemp.path}/gurbani-wallpaper-$stamp.png');
+      await file.writeAsBytes(bytes, flush: true);
+      await Gal.putImage(file.path);
       _toast(
         "Saved to your gallery. Set it as wallpaper from your phone's settings.",
       );
-    } catch (_) {
-      _toast("Couldn't save the wallpaper. Please try again.");
+    } on GalException catch (e) {
+      _toast(
+        e.type == GalExceptionType.accessDenied
+            ? 'Allow access to Photos to save your wallpaper.'
+            : "Couldn't save the wallpaper (${e.type.name}). Please try again.",
+      );
+    } catch (e) {
+      _toast("Couldn't save the wallpaper (${e.runtimeType}). Please try again.");
+    } finally {
+      try {
+        await file?.delete();
+      } catch (_) {}
     }
   });
 
