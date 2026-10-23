@@ -65,6 +65,9 @@ jobs:
       - name: Get packages
         run: flutter pub get
 
+      - name: Generate app icons
+        run: dart run flutter_launcher_icons
+
       - name: Analyze and test
         run: |
           flutter analyze

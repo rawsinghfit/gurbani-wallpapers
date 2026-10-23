@@ -19,6 +19,21 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^6.0.0
+  flutter_launcher_icons: ^0.14.4
 
 flutter:
   uses-material-design: true
+
+# App icons, generated in the cloud after `flutter create` (see build.yml).
+flutter_launcher_icons:
+  image_path: "store/app-icon-1024.png"
+  android: true
+  ios: false
+  min_sdk_android: 24
+  adaptive_icon_background: "#172B45"
+  adaptive_icon_foreground: "store/app-icon-foreground.png"
+  web:
+    generate: true
+    image_path: "store/app-icon-1024.png"
+    background_color: "#0E1B2C"
+    theme_color: "#0E1B2C"

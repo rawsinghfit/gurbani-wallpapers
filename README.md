@@ -48,6 +48,8 @@ Until the Play upload key is added, the Play bundle is signed with a debug key t
 
 Then run the workflow again and upload `app-release.aab` from **play-store-bundle** in Play Console. Each run gets a new version code automatically.
 
+Everything for the Play Store listing (texts, icon, feature graphic, form answers) is in [`store/LISTING.md`](store/LISTING.md). Phone screenshots come from the **Play Store screenshots** workflow (Actions tab → Run workflow), which attaches them to the `store-screenshots` release.
+
 Privacy policy URL for Play Console and AdMob: `https://<your-username>.github.io/<repository-name>/privacy.html`
 
 ## Project layout
@@ -59,3 +61,4 @@ Privacy policy URL for Play Console and AdMob: `https://<your-username>.github.i
 - `lib/ads/`: AdMob banner and consent (mobile only; empty on web)
 - `tool/configure_android.py`: patches the generated `android/` folder in the cloud
 - `pages/privacy.html`: privacy policy published with the web version
+- `store/`: Play Store listing text, icon, feature graphic and screenshot script
