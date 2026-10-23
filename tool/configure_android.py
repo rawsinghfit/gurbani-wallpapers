@@ -2,12 +2,14 @@
 
 - Adds the INTERNET (and old-Android storage) permission and sets the app label.
 - Adds the AdMob application ID (ADMOB_APP_ID overrides the one below).
+- Adds R8 keep rules (tool/proguard-rules.pro) so release builds don't crash.
 - Signs release builds with the Play upload key when android/key.properties
   exists; otherwise release builds keep using the debug key.
 """
 
 import os
 import re
+import shutil
 import sys
 from pathlib import Path
 
@@ -15,6 +17,9 @@ ADMOB_APP_ID = "ca-app-pub-6267106725130019~8730544784"
 
 manifest_path = Path("android/app/src/main/AndroidManifest.xml")
 gradle_path = Path("android/app/build.gradle.kts")
+proguard_source = Path(__file__).with_name("proguard-rules.pro")
+# The Flutter Gradle plugin applies this file to release builds automatically.
+proguard_target = Path("android/app/proguard-rules.pro")
 
 
 def patch_manifest() -> None:
@@ -97,4 +102,5 @@ def patch_gradle() -> None:
 
 patch_manifest()
 patch_gradle()
+shutil.copyfile(proguard_source, proguard_target)
 print(manifest_path.read_text())

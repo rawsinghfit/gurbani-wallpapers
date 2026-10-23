@@ -2,7 +2,7 @@ name: Android smoke test
 
 # Installs the latest test APK on an emulator, opens it, and prints the
 # crash log (if any) plus a screenshot, so startup problems can be found
-# without a phone connected to a computer.
+# without a phone connected to a computer. Fails if the app has crashed.
 on:
   workflow_dispatch:
   workflow_run:
@@ -39,13 +39,13 @@ jobs:
             adb logcat -c
             adb shell monkey -p com.gurbaniwallpapers.gurbani_wallpapers -c android.intent.category.LAUNCHER 1
             sleep 25
-            echo "===== Running process ====="
-            adb shell pidof com.gurbaniwallpapers.gurbani_wallpapers || echo "APP IS NOT RUNNING (crashed)"
             echo "===== Crash log ====="
             adb logcat -d -b crash || true
             echo "===== App and Flutter log ====="
             adb logcat -d | grep -E "AndroidRuntime|flutter|FATAL|Ads|gurbani" | tail -200 || true
             adb exec-out screencap -p > screen.png
+            echo "===== Is the app still running? ====="
+            adb shell pidof com.gurbaniwallpapers.gurbani_wallpapers
 
       - name: Upload screenshot
         if: always()
