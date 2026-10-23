@@ -1,7 +1,7 @@
 """Patches the android/ folder that `flutter create` generates in the cloud.
 
 - Adds the INTERNET (and old-Android storage) permission and sets the app label.
-- Adds the AdMob application ID (Google's test ID if ADMOB_APP_ID is unset).
+- Adds the AdMob application ID (ADMOB_APP_ID overrides the one below).
 - Signs release builds with the Play upload key when android/key.properties
   exists; otherwise release builds keep using the debug key.
 """
@@ -11,7 +11,7 @@ import re
 import sys
 from pathlib import Path
 
-ADMOB_TEST_APP_ID = "ca-app-pub-3940256099942544~3347511713"
+ADMOB_APP_ID = "ca-app-pub-6267106725130019~8730544784"
 
 manifest_path = Path("android/app/src/main/AndroidManifest.xml")
 gradle_path = Path("android/app/build.gradle.kts")
@@ -38,7 +38,9 @@ def patch_manifest() -> None:
 
     text = re.sub(r'android:label="[^"]*"', 'android:label="Gurbani Wallpapers"', text, count=1)
 
-    app_id = os.environ.get("ADMOB_APP_ID", "").strip() or ADMOB_TEST_APP_ID
+    app_id = os.environ.get("ADMOB_APP_ID", "").strip() or ADMOB_APP_ID
+    if not re.fullmatch(r"ca-app-pub-\d{16}~\d{10}", app_id):
+        sys.exit(f"Invalid AdMob app ID: {app_id}")
     if "com.google.android.gms.ads.APPLICATION_ID" not in text:
         text = text.replace(
             "</application>",

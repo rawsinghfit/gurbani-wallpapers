@@ -31,7 +31,7 @@ In the repository, go to **Settings → Pages → Build and deployment → Sourc
 
 ## Ads and Google Play
 
-Until you add your own IDs, the app shows Google's **test ads**, and the Play bundle is signed with a debug key that Google Play won't accept.
+The AdMob app ID is set in `tool/configure_android.py`. Until you add your own ad unit IDs, the app shows Google's **test ads**, and the Play bundle is signed with a debug key that Google Play won't accept.
 
 In the repository, open **Settings → Secrets and variables → Actions**.
 
@@ -39,7 +39,7 @@ In the repository, open **Settings → Secrets and variables → Actions**.
 
 | Name | Value |
 | --- | --- |
-| `ADMOB_APP_ID` | AdMob app ID, looks like `ca-app-pub-1234567890123456~1234567890` |
+| `ADMOB_APP_ID` | Optional: overrides the AdMob app ID in `tool/configure_android.py` |
 | `ADMOB_BANNER_ID` | AdMob banner ad unit ID, looks like `ca-app-pub-1234567890123456/1234567890` |
 | `ADMOB_REWARDED_ID` | AdMob rewarded ad unit ID, same format |
 
