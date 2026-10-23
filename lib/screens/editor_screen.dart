@@ -174,16 +174,21 @@ class _EditorScreenState extends State<EditorScreen> {
                 ],
               );
             }
-            return ListView(
+            // Not a ListView: it would drop the preview once it scrolls out
+            // of view, and the wallpaper is exported from that preview.
+            return SingleChildScrollView(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
-              children: [
-                SizedBox(
-                  height: (constraints.maxHeight * 0.62).clamp(320.0, 620.0),
-                  child: _preview(),
-                ),
-                const SizedBox(height: 16),
-                ..._controls(),
-              ],
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  SizedBox(
+                    height: (constraints.maxHeight * 0.62).clamp(320.0, 620.0),
+                    child: _preview(),
+                  ),
+                  const SizedBox(height: 16),
+                  ..._controls(),
+                ],
+              ),
             );
           },
         ),
