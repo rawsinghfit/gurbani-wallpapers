@@ -31,19 +31,11 @@ In the repository, go to **Settings → Pages → Build and deployment → Sourc
 
 ## Ads and Google Play
 
-The AdMob app ID is set in `tool/configure_android.py`. Until you add your own ad unit IDs, the app shows Google's **test ads**, and the Play bundle is signed with a debug key that Google Play won't accept.
+The AdMob app ID is set in `tool/configure_android.py`, and the real banner and rewarded ad unit IDs are set in `.github/workflows/build.yml`. Only the **play-store-bundle** uses the real ad units. The **android-test-app** APK always shows Google's test ads, so testing never counts as invalid ad traffic.
 
-In the repository, open **Settings → Secrets and variables → Actions**.
+To change the IDs without editing files, open **Settings → Secrets and variables → Actions → Variables** and add any of `ADMOB_APP_ID`, `ADMOB_BANNER_ID` or `ADMOB_REWARDED_ID`.
 
-**Variables** tab (your AdMob IDs):
-
-| Name | Value |
-| --- | --- |
-| `ADMOB_APP_ID` | Optional: overrides the AdMob app ID in `tool/configure_android.py` |
-| `ADMOB_BANNER_ID` | AdMob banner ad unit ID, looks like `ca-app-pub-1234567890123456/1234567890` |
-| `ADMOB_REWARDED_ID` | AdMob rewarded ad unit ID, same format |
-
-**Secrets** tab (your Play upload key):
+Until the Play upload key is added, the Play bundle is signed with a debug key that Google Play won't accept. In the same settings page, on the **Secrets** tab, add your Play upload key:
 
 | Name | Value |
 | --- | --- |

@@ -68,16 +68,17 @@ jobs:
           flutter analyze
           flutter test
 
+      # The test APK keeps Google's test ads, so tapping ads while testing
+      # never counts as invalid traffic. Only the Play bundle gets real ad units.
       - name: Build Android APK and Play Store bundle
         env:
-          ADMOB_BANNER_ID: ${{ vars.ADMOB_BANNER_ID }}
-          ADMOB_REWARDED_ID: ${{ vars.ADMOB_REWARDED_ID }}
+          ADMOB_BANNER_ID: ${{ vars.ADMOB_BANNER_ID || 'ca-app-pub-6267106725130019/3825788180' }}
+          ADMOB_REWARDED_ID: ${{ vars.ADMOB_REWARDED_ID || 'ca-app-pub-6267106725130019/8040987489' }}
         run: |
-          DEFINES=""
-          if [ -n "$ADMOB_BANNER_ID" ]; then DEFINES="$DEFINES --dart-define=ADMOB_BANNER_ID=$ADMOB_BANNER_ID"; fi
-          if [ -n "$ADMOB_REWARDED_ID" ]; then DEFINES="$DEFINES --dart-define=ADMOB_REWARDED_ID=$ADMOB_REWARDED_ID"; fi
-          flutter build apk --release --build-number=${{ github.run_number }} $DEFINES
-          flutter build appbundle --release --build-number=${{ github.run_number }} $DEFINES
+          flutter build apk --release --build-number=${{ github.run_number }}
+          flutter build appbundle --release --build-number=${{ github.run_number }} \
+            --dart-define=ADMOB_BANNER_ID="$ADMOB_BANNER_ID" \
+            --dart-define=ADMOB_REWARDED_ID="$ADMOB_REWARDED_ID"
 
       - name: Upload Android app
         uses: actions/upload-artifact@v4
