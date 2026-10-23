@@ -36,9 +36,9 @@ await page.getByRole('button', { name: 'Random shabad' }).click();
 await page.getByRole('button', { name: /Ang \d+/ }).first().waitFor({ timeout: 30000 });
 await shot('01-search');
 
-// Prefer a verse line (it ends in "||") over the shabad's heading line.
+// Prefer a verse line (it ends in "||") over headings such as "... mahalaa ...".
 const lines = page.getByRole('button', { name: /Ang \d+/ });
-const verse = page.getByRole('button', { name: /^(?![\s\S]*ikOankaar)[\s\S]*\|\|[\s\S]*Ang \d+/ });
+const verse = page.getByRole('button', { name: /^(?![\s\S]*(?:ikOankaar|mahalaa))[\s\S]*\|\|[\s\S]*Ang \d+/ });
 await ((await verse.count()) > 0 ? verse : lines).first().click();
 await pause(4000);
 await shot('02-editor-amrit-vela');
