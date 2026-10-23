@@ -15,6 +15,8 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write # publish the test APK as a release download
     steps:
       - uses: actions/checkout@v4
 
@@ -85,6 +87,20 @@ jobs:
         with:
           name: android-test-app
           path: build/app/outputs/flutter-apk/app-release.apk
+
+      # A direct .apk link that is easy to open on a phone (no zip, no sign-in):
+      # https://github.com/<owner>/<repo>/releases/download/android-test/gurbani-wallpapers-test.apk
+      - name: Publish test APK as a direct download
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cp build/app/outputs/flutter-apk/app-release.apk gurbani-wallpapers-test.apk
+          gh release delete android-test --yes --cleanup-tag || true
+          gh release create android-test gurbani-wallpapers-test.apk \
+            --target "${{ github.sha }}" \
+            --prerelease \
+            --title "Android test app (build ${{ github.run_number }})" \
+            --notes "Latest test build for Android phones. Shows Google's test ads only. Not for the Play Store."
 
       - name: Upload Play Store bundle
         uses: actions/upload-artifact@v4

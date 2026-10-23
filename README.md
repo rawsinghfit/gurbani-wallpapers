@@ -25,9 +25,13 @@ In the repository, go to **Settings → Pages → Build and deployment → Sourc
 
 ## Getting the Android app
 
-1. Open the **Actions** tab and click the latest green run.
-2. Under **Artifacts**, download **android-test-app** (a zip file).
-3. Unzip it and copy `app-release.apk` to your Android phone, then open it and allow "Install unknown apps" when asked.
+On your Android phone, open this link in Chrome. It always points to the latest test build:
+
+`https://github.com/<your-username>/<repository-name>/releases/download/android-test/gurbani-wallpapers-test.apk`
+
+Open the downloaded file, allow "Install unknown apps" when asked, and tap **Install**. The test app shows Google's test ads only.
+
+The same APK is also attached to each workflow run as the **android-test-app** artifact (a zip).
 
 ## Ads and Google Play
 
