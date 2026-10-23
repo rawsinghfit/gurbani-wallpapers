@@ -36,7 +36,10 @@ await page.getByRole('button', { name: 'Random shabad' }).click();
 await page.getByRole('button', { name: /Ang \d+/ }).first().waitFor({ timeout: 30000 });
 await shot('01-search');
 
-await page.getByRole('button', { name: /Ang \d+/ }).first().click();
+// Prefer a verse line (it ends in "||") over the shabad's heading line.
+const lines = page.getByRole('button', { name: /Ang \d+/ });
+const verse = page.getByRole('button', { name: /^(?![\s\S]*ikOankaar)[\s\S]*\|\|[\s\S]*Ang \d+/ });
+await ((await verse.count()) > 0 ? verse : lines).first().click();
 await pause(4000);
 await shot('02-editor-amrit-vela');
 
@@ -49,10 +52,8 @@ await tap('checkbox', 'Classic');
 await tap('switch', 'Show English meaning');
 await shot('04-editor-marble-meaning');
 
-await tap('button', 'Night');
-await tap('checkbox', 'Modern');
-await tap('switch', 'Show English meaning');
-await tap('button', 'Top');
-await shot('05-editor-night-top');
+await tap('button', 'Gold leaf');
+await tap('checkbox', 'Soft');
+await shot('05-editor-gold-leaf');
 
 await browser.close();
