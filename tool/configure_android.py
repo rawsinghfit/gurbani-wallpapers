@@ -1,6 +1,6 @@
 """Patches the android/ folder that `flutter create` generates in the cloud.
 
-- Adds the INTERNET permission and sets the app label.
+- Adds the INTERNET (and old-Android storage) permission and sets the app label.
 - Adds the AdMob application ID (Google's test ID if ADMOB_APP_ID is unset).
 - Signs release builds with the Play upload key when android/key.properties
   exists; otherwise release builds keep using the debug key.
@@ -24,6 +24,15 @@ def patch_manifest() -> None:
         text = text.replace(
             "<application",
             '<uses-permission android:name="android.permission.INTERNET"/>\n    <application',
+            1,
+        )
+
+    # Saving to the gallery on Android 10 and older needs storage access.
+    if "android.permission.WRITE_EXTERNAL_STORAGE" not in text:
+        text = text.replace(
+            "<application",
+            '<uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"'
+            ' android:maxSdkVersion="29"/>\n    <application',
             1,
         )
 

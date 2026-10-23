@@ -5,12 +5,18 @@ import 'package:flutter/material.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
 import '../theme.dart';
+import 'reward_result.dart';
 
 /// Real ad unit IDs are passed in by the cloud build (--dart-define).
 /// Without them, Google's official test ads are shown.
 const _bannerId = String.fromEnvironment(
   'ADMOB_BANNER_ID',
   defaultValue: 'ca-app-pub-3940256099942544/6300978111',
+);
+
+const _rewardedId = String.fromEnvironment(
+  'ADMOB_REWARDED_ID',
+  defaultValue: 'ca-app-pub-3940256099942544/5224354917',
 );
 
 bool get _supported => Platform.isAndroid || Platform.isIOS;
@@ -46,13 +52,76 @@ Future<void> initAds() async {
 /// Whether the app must offer a way to change ad consent (EU/UK users).
 Future<bool> privacyOptionsRequired() async {
   if (!_supported) return false;
-  final status =
-      await ConsentInformation.instance.getPrivacyOptionsRequirementStatus();
+  final status = await ConsentInformation.instance
+      .getPrivacyOptionsRequirementStatus();
   return status == PrivacyOptionsRequirementStatus.required;
 }
 
-Future<void> showPrivacyOptions() =>
-    ConsentForm.showPrivacyOptionsForm((_) {});
+Future<void> showPrivacyOptions() => ConsentForm.showPrivacyOptionsForm((_) {});
+
+bool get rewardedAdsEnabled => _supported;
+
+RewardedAd? _rewarded;
+Future<RewardedAd?>? _rewardedLoading;
+
+/// Starts loading a rewarded ad so it is ready when the user asks for it.
+void preloadRewardedAd() {
+  if (!_adsReady.value || _rewarded != null || _rewardedLoading != null) {
+    return;
+  }
+  final completer = Completer<RewardedAd?>();
+  _rewardedLoading = completer.future;
+  RewardedAd.load(
+    adUnitId: _rewardedId,
+    request: const AdRequest(),
+    rewardedAdLoadCallback: RewardedAdLoadCallback(
+      onAdLoaded: (ad) {
+        _rewarded = ad;
+        _rewardedLoading = null;
+        completer.complete(ad);
+      },
+      onAdFailedToLoad: (_) {
+        _rewardedLoading = null;
+        completer.complete(null);
+      },
+    ),
+  );
+}
+
+/// Shows a rewarded video. Never blocks the user for long: if no ad is
+/// ready within a few seconds, returns [RewardResult.unavailable].
+Future<RewardResult> showRewardedAd() async {
+  if (!_adsReady.value) return RewardResult.unavailable;
+
+  preloadRewardedAd();
+  final ad =
+      _rewarded ??
+      await _rewardedLoading?.timeout(
+        const Duration(seconds: 8),
+        onTimeout: () => null,
+      );
+  if (ad == null) return RewardResult.unavailable;
+  _rewarded = null;
+
+  final done = Completer<RewardResult>();
+  var earned = false;
+  ad.fullScreenContentCallback = FullScreenContentCallback(
+    onAdDismissedFullScreenContent: (ad) {
+      ad.dispose();
+      if (!done.isCompleted) {
+        done.complete(earned ? RewardResult.earned : RewardResult.skipped);
+      }
+      preloadRewardedAd();
+    },
+    onAdFailedToShowFullScreenContent: (ad, _) {
+      ad.dispose();
+      if (!done.isCompleted) done.complete(RewardResult.unavailable);
+      preloadRewardedAd();
+    },
+  );
+  await ad.show(onUserEarnedReward: (_, _) => earned = true);
+  return done.future;
+}
 
 /// A small banner anchored at the bottom of a screen.
 /// Takes no space until an ad has actually loaded.

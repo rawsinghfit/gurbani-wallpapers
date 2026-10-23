@@ -71,9 +71,11 @@ jobs:
       - name: Build Android APK and Play Store bundle
         env:
           ADMOB_BANNER_ID: ${{ vars.ADMOB_BANNER_ID }}
+          ADMOB_REWARDED_ID: ${{ vars.ADMOB_REWARDED_ID }}
         run: |
           DEFINES=""
-          if [ -n "$ADMOB_BANNER_ID" ]; then DEFINES="--dart-define=ADMOB_BANNER_ID=$ADMOB_BANNER_ID"; fi
+          if [ -n "$ADMOB_BANNER_ID" ]; then DEFINES="$DEFINES --dart-define=ADMOB_BANNER_ID=$ADMOB_BANNER_ID"; fi
+          if [ -n "$ADMOB_REWARDED_ID" ]; then DEFINES="$DEFINES --dart-define=ADMOB_REWARDED_ID=$ADMOB_REWARDED_ID"; fi
           flutter build apk --release --build-number=${{ github.run_number }} $DEFINES
           flutter build appbundle --release --build-number=${{ github.run_number }} $DEFINES
 

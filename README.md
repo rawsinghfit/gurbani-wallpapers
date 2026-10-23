@@ -4,7 +4,7 @@ Find a line of Gurbani and turn it into a phone wallpaper or a WhatsApp/Instagra
 
 - All Gurbani comes live from the [BaniDB API](https://api.banidb.com/v2) by Khalis Foundation and is shown exactly as returned. The app contains no Gurbani text of its own, and the text cannot be edited.
 - You can only change the background (calm gradients), font, size and position.
-- The Android app shows one small banner ad at the bottom of the screen (Google AdMob, family-safe ads only). Ads never appear on the wallpaper itself. The web version has no ads.
+- The Android app shows a small banner ad at the bottom of the screen, and asks the user to watch one short rewarded video to unlock saving and sharing a wallpaper (Google AdMob, family-safe ads only). If no ad is available, saving is unlocked anyway. Ads never appear on the wallpaper itself. The web version has no ads.
 
 ## How the cloud build works
 
@@ -41,6 +41,7 @@ In the repository, open **Settings → Secrets and variables → Actions**.
 | --- | --- |
 | `ADMOB_APP_ID` | AdMob app ID, looks like `ca-app-pub-1234567890123456~1234567890` |
 | `ADMOB_BANNER_ID` | AdMob banner ad unit ID, looks like `ca-app-pub-1234567890123456/1234567890` |
+| `ADMOB_REWARDED_ID` | AdMob rewarded ad unit ID, same format |
 
 **Secrets** tab (your Play upload key):
 

@@ -1,7 +1,9 @@
 import 'dart:ui' as ui;
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
+import 'package:gal/gal.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../ads/ads.dart';
@@ -28,45 +30,104 @@ class _EditorScreenState extends State<EditorScreen> {
   TextPosition _position = TextPosition.middle;
   bool _showPronunciation = true;
   bool _showMeaning = false;
-  bool _sharing = false;
+  bool _busy = false;
 
-  Future<void> _share(BuildContext buttonContext) async {
-    final box = buttonContext.findRenderObject() as RenderBox?;
-    final origin =
-        box == null ? null : box.localToGlobal(Offset.zero) & box.size;
-    final messenger = ScaffoldMessenger.of(context);
+  /// Saving and sharing unlock after one rewarded ad (Android app only).
+  bool _unlocked = !rewardedAdsEnabled;
 
-    setState(() => _sharing = true);
+  static final _canSaveToGallery =
+      !kIsWeb &&
+      (defaultTargetPlatform == TargetPlatform.android ||
+          defaultTargetPlatform == TargetPlatform.iOS);
+
+  @override
+  void initState() {
+    super.initState();
+    preloadRewardedAd();
+  }
+
+  void _toast(String message) {
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  Future<bool> _ensureUnlocked() async {
+    if (_unlocked) return true;
+    final result = await showRewardedAd();
+    if (!mounted) return false;
+    if (result == RewardResult.skipped) {
+      _toast('Watch the whole video to unlock your wallpaper.');
+      return false;
+    }
+    // Earned, or no ad was available: never leave the user stuck.
+    setState(() => _unlocked = true);
+    return true;
+  }
+
+  Future<Uint8List> _capture() async {
+    final boundary =
+        _canvasKey.currentContext?.findRenderObject() as RenderRepaintBoundary?;
+    if (boundary == null) throw StateError('Preview not ready');
+
+    final image = await boundary.toImage(pixelRatio: 4);
+    final data = await image.toByteData(format: ui.ImageByteFormat.png);
+    image.dispose();
+    if (data == null) throw StateError('Could not encode image');
+    return data.buffer.asUint8List();
+  }
+
+  Future<void> _run(Future<void> Function() action) async {
+    if (_busy) return;
+    setState(() => _busy = true);
     try {
-      final boundary = _canvasKey.currentContext?.findRenderObject()
-          as RenderRepaintBoundary?;
-      if (boundary == null) throw StateError('Preview not ready');
+      if (await _ensureUnlocked()) await action();
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
 
-      final image = await boundary.toImage(pixelRatio: 4);
-      final data = await image.toByteData(format: ui.ImageByteFormat.png);
-      image.dispose();
-      if (data == null) throw StateError('Could not encode image');
-
-      final bytes = data.buffer.asUint8List();
-      const fileName = 'gurbani-wallpaper.png';
-      await SharePlus.instance.share(
-        ShareParams(
-          files: [
-            XFile.fromData(bytes, mimeType: 'image/png', name: fileName),
-          ],
-          fileNameOverrides: const [fileName],
-          sharePositionOrigin: origin,
-        ),
+  Future<void> _save() => _run(() async {
+    try {
+      if (!await Gal.requestAccess()) {
+        _toast('Allow access to Photos to save your wallpaper.');
+        return;
+      }
+      final bytes = await _capture();
+      await Gal.putImageBytes(
+        bytes,
+        name: 'gurbani-wallpaper-${DateTime.now().millisecondsSinceEpoch}',
+      );
+      _toast(
+        "Saved to your gallery. Set it as wallpaper from your phone's settings.",
       );
     } catch (_) {
-      messenger.showSnackBar(
-        const SnackBar(
-          content: Text("Couldn't create the wallpaper. Please try again."),
-        ),
-      );
-    } finally {
-      if (mounted) setState(() => _sharing = false);
+      _toast("Couldn't save the wallpaper. Please try again.");
     }
+  });
+
+  Future<void> _share(BuildContext buttonContext) {
+    final box = buttonContext.findRenderObject() as RenderBox?;
+    final origin = box == null
+        ? null
+        : box.localToGlobal(Offset.zero) & box.size;
+    return _run(() async {
+      try {
+        final bytes = await _capture();
+        const fileName = 'gurbani-wallpaper.png';
+        await SharePlus.instance.share(
+          ShareParams(
+            files: [
+              XFile.fromData(bytes, mimeType: 'image/png', name: fileName),
+            ],
+            fileNameOverrides: const [fileName],
+            sharePositionOrigin: origin,
+          ),
+        );
+      } catch (_) {
+        _toast("Couldn't create the wallpaper. Please try again.");
+      }
+    });
   }
 
   @override
@@ -154,12 +215,12 @@ class _EditorScreenState extends State<EditorScreen> {
   List<Widget> _controls() {
     final textTheme = Theme.of(context).textTheme;
     Widget heading(String text) => Padding(
-          padding: const EdgeInsets.fromLTRB(4, 18, 4, 10),
-          child: Text(
-            text,
-            style: textTheme.titleSmall?.copyWith(color: AppColors.muted),
-          ),
-        );
+      padding: const EdgeInsets.fromLTRB(4, 18, 4, 10),
+      child: Text(
+        text,
+        style: textTheme.titleSmall?.copyWith(color: AppColors.muted),
+      ),
+    );
 
     return [
       heading('Background'),
@@ -225,29 +286,79 @@ class _EditorScreenState extends State<EditorScreen> {
             : (v) => setState(() => _showMeaning = v),
       ),
       const SizedBox(height: 16),
-      Builder(
-        builder: (buttonContext) => FilledButton.icon(
-          style: FilledButton.styleFrom(
-            minimumSize: const Size.fromHeight(52),
-            textStyle: textTheme.titleMedium,
-          ),
-          onPressed: _sharing ? null : () => _share(buttonContext),
-          icon: _sharing
-              ? const SizedBox(
-                  width: 18,
-                  height: 18,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
-              : const Icon(Icons.ios_share),
-          label: Text(_sharing ? 'Preparing…' : 'Share wallpaper'),
+      ..._actions(textTheme),
+    ];
+  }
+
+  List<Widget> _actions(TextTheme textTheme) {
+    final buttonStyle = FilledButton.styleFrom(
+      minimumSize: const Size.fromHeight(52),
+      textStyle: textTheme.titleMedium,
+    );
+    const spinner = SizedBox(
+      width: 18,
+      height: 18,
+      child: CircularProgressIndicator(strokeWidth: 2),
+    );
+    Widget hint(String text) => Text(
+      text,
+      textAlign: TextAlign.center,
+      style: textTheme.bodySmall?.copyWith(color: AppColors.muted),
+    );
+
+    final shareButton = Builder(
+      builder: (buttonContext) => _canSaveToGallery
+          ? OutlinedButton.icon(
+              style: OutlinedButton.styleFrom(
+                minimumSize: const Size.fromHeight(48),
+              ),
+              onPressed: _busy ? null : () => _share(buttonContext),
+              icon: const Icon(Icons.share_outlined),
+              label: const Text('Share to WhatsApp, Instagram…'),
+            )
+          : FilledButton.icon(
+              style: buttonStyle,
+              onPressed: _busy ? null : () => _share(buttonContext),
+              icon: _busy ? spinner : const Icon(Icons.ios_share),
+              label: Text(_busy ? 'Preparing…' : 'Share wallpaper'),
+            ),
+    );
+
+    if (!_canSaveToGallery) {
+      return [
+        shareButton,
+        const SizedBox(height: 12),
+        hint(
+          "Tip: Choose 'Save image' in the share menu, then set it as your "
+          "wallpaper from your phone's settings.",
+        ),
+      ];
+    }
+
+    return [
+      FilledButton.icon(
+        style: buttonStyle,
+        onPressed: _busy ? null : _save,
+        icon: _busy
+            ? spinner
+            : Icon(_unlocked ? Icons.download_rounded : Icons.smart_display),
+        label: Text(
+          _busy
+              ? 'Please wait…'
+              : _unlocked
+              ? 'Save to gallery'
+              : 'Watch ad & save',
         ),
       ),
+      const SizedBox(height: 10),
+      shareButton,
       const SizedBox(height: 12),
-      Text(
-        "Tip: Choose 'Save image' in the share menu, then set it as your "
-        "wallpaper from your phone's settings.",
-        textAlign: TextAlign.center,
-        style: textTheme.bodySmall?.copyWith(color: AppColors.muted),
+      hint(
+        _unlocked
+            ? "Saved wallpapers go to your gallery. Set one as your wallpaper "
+                  "from your phone's settings."
+            : 'Watch a short video ad to unlock saving and sharing for this '
+                  'wallpaper.',
       ),
     ];
   }
@@ -295,8 +406,8 @@ class _BackgroundSwatch extends StatelessWidget {
                 background.name,
                 textAlign: TextAlign.center,
                 style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                      color: selected ? AppColors.marble : AppColors.muted,
-                    ),
+                  color: selected ? AppColors.marble : AppColors.muted,
+                ),
               ),
             ],
           ),
