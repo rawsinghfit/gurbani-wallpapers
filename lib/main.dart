@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 
+import 'ads/ads.dart';
 import 'screens/search_screen.dart';
 import 'theme.dart';
 
 void main() {
   runApp(const GurbaniWallpapersApp());
+  initAds();
 }
 
 class GurbaniWallpapersApp extends StatelessWidget {

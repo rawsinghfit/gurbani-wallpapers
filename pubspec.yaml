@@ -10,6 +10,7 @@ dependencies:
   flutter:
     sdk: flutter
   google_fonts: ^8.2.1
+  google_mobile_ads: ^9.2.0
   http: ^1.6.0
   share_plus: ^13.3.1
 

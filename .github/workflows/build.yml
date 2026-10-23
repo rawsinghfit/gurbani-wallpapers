@@ -33,16 +33,32 @@ jobs:
       - name: Create Android and web platform folders
         run: flutter create . --platforms=android,web --org com.gurbaniwallpapers --project-name gurbani_wallpapers
 
-      - name: Set app name and internet permission
+      - name: Configure Android app (name, permissions, AdMob ID, signing)
+        env:
+          ADMOB_APP_ID: ${{ vars.ADMOB_APP_ID }}
+        run: python3 tool/configure_android.py
+
+      - name: Set web app name
         run: |
-          MANIFEST=android/app/src/main/AndroidManifest.xml
-          if ! grep -q 'android.permission.INTERNET' "$MANIFEST"; then
-            sed -i 's|<application|<uses-permission android:name="android.permission.INTERNET"/>\n    <application|' "$MANIFEST"
-          fi
-          sed -i 's|android:label="[^"]*"|android:label="Gurbani Wallpapers"|' "$MANIFEST"
           sed -i 's|<title>[^<]*</title>|<title>Gurbani Wallpapers</title>|; s|apple-mobile-web-app-title" content="[^"]*"|apple-mobile-web-app-title" content="Gurbani Wallpapers"|' web/index.html
           sed -i 's|"name": "[^"]*"|"name": "Gurbani Wallpapers"|; s|"short_name": "[^"]*"|"short_name": "Gurbani"|; s|"background_color": "[^"]*"|"background_color": "#0E1B2C"|; s|"theme_color": "[^"]*"|"theme_color": "#0E1B2C"|; s|"description": "[^"]*"|"description": "Turn a line of Gurbani into a wallpaper or status."|' web/manifest.json
-          cat "$MANIFEST"
+
+      - name: Add Play upload key (if set up)
+        env:
+          UPLOAD_KEYSTORE_BASE64: ${{ secrets.UPLOAD_KEYSTORE_BASE64 }}
+          UPLOAD_KEYSTORE_PASSWORD: ${{ secrets.UPLOAD_KEYSTORE_PASSWORD }}
+        run: |
+          if [ -z "$UPLOAD_KEYSTORE_BASE64" ]; then
+            echo "::warning::No Play upload key set. The app bundle is signed with a debug key and cannot be uploaded to Google Play."
+            exit 0
+          fi
+          echo "$UPLOAD_KEYSTORE_BASE64" | base64 --decode > android/app/upload-keystore.jks
+          {
+            echo "storeFile=upload-keystore.jks"
+            echo "storePassword=$UPLOAD_KEYSTORE_PASSWORD"
+            echo "keyPassword=$UPLOAD_KEYSTORE_PASSWORD"
+            echo "keyAlias=upload"
+          } > android/key.properties
 
       - name: Get packages
         run: flutter pub get
@@ -52,8 +68,14 @@ jobs:
           flutter analyze
           flutter test
 
-      - name: Build Android APK
-        run: flutter build apk --release
+      - name: Build Android APK and Play Store bundle
+        env:
+          ADMOB_BANNER_ID: ${{ vars.ADMOB_BANNER_ID }}
+        run: |
+          DEFINES=""
+          if [ -n "$ADMOB_BANNER_ID" ]; then DEFINES="--dart-define=ADMOB_BANNER_ID=$ADMOB_BANNER_ID"; fi
+          flutter build apk --release --build-number=${{ github.run_number }} $DEFINES
+          flutter build appbundle --release --build-number=${{ github.run_number }} $DEFINES
 
       - name: Upload Android app
         uses: actions/upload-artifact@v4
@@ -61,8 +83,16 @@ jobs:
           name: android-test-app
           path: build/app/outputs/flutter-apk/app-release.apk
 
+      - name: Upload Play Store bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: play-store-bundle
+          path: build/app/outputs/bundle/release/app-release.aab
+
       - name: Build web app
-        run: flutter build web --release --base-href "/${{ github.event.repository.name }}/"
+        run: |
+          flutter build web --release --base-href "/${{ github.event.repository.name }}/"
+          cp pages/privacy.html build/web/privacy.html
 
       - name: Upload web app for GitHub Pages
         uses: actions/upload-pages-artifact@v3

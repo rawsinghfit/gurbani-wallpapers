@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import '../ads/ads.dart';
 import '../models/verse.dart';
 import '../services/banidb_service.dart';
 import '../theme.dart';
@@ -98,7 +99,9 @@ class _SearchScreenState extends State<SearchScreen> {
     }
   }
 
-  void _showInfo() {
+  Future<void> _showInfo() async {
+    final showPrivacy = await privacyOptionsRequired();
+    if (!mounted) return;
     showDialog<void>(
       context: context,
       builder: (context) => AlertDialog(
@@ -112,6 +115,14 @@ class _SearchScreenState extends State<SearchScreen> {
           'the background, font, size and position of your wallpaper.',
         ),
         actions: [
+          if (showPrivacy)
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                showPrivacyOptions();
+              },
+              child: const Text('Ad privacy settings'),
+            ),
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
             child: const Text('OK'),
@@ -141,6 +152,7 @@ class _SearchScreenState extends State<SearchScreen> {
           ),
         ],
       ),
+      bottomNavigationBar: const AdBanner(),
       body: SafeArea(
         top: false,
         child: Center(

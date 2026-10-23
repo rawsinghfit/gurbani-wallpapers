@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:share_plus/share_plus.dart';
 
+import '../ads/ads.dart';
 import '../models/verse.dart';
 import '../theme.dart';
 import '../wallpaper/wallpaper_canvas.dart';
@@ -72,6 +73,7 @@ class _EditorScreenState extends State<EditorScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Make wallpaper')),
+      bottomNavigationBar: const AdBanner(),
       body: SafeArea(
         top: false,
         child: LayoutBuilder(
